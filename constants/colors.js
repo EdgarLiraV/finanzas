@@ -1,11 +1,8 @@
 export const COLORS = {
-    PrimarioOscuro: "#509090",
-    Primario: "#5EBBB5",
-    Blanco: "#FFFFFF",
-    Negro: "#2B2A29",
-    GrisOscuro: "#535353",
-    GrisClaro: "#CCCCCC",
-    GrisClarisimo: "#E4E4E4",
-    Fondo: "#EDF0F2",
-    Consulta: "#E5F2FF",
+    base1: "#0F0F14",
+    base2: "#18181B",
+    texto1: "#FAFAFA",
+    texto2: "#A1A1AA",
+    acento: "#8B5CF6",
+    acentoClaro: "#A78BFA",
 };
