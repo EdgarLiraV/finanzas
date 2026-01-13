@@ -3,6 +3,6 @@ export const COLORS = {
     base2: "#18181B",
     texto1: "#FAFAFA",
     texto2: "#A1A1AA",
-    acento: "#8B5CF6",
+    acento: "#52DE5E",
     acentoClaro: "#A78BFA",
 };
