@@ -1,68 +1,162 @@
+import Eye from "@/src/assets/icons/eye.svg";
+import EyeClose from "@/src/assets/icons/eyeclose.svg";
 import { useUserStore } from "@/src/store/userStore";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function Home() {
-  const clearUser = useUserStore((s) => s.clearUser);
+  {/* BALANCE y PNL */}
+  const balanceUSD = 12000;
+  const pnlUSD = 3000;
+  {/* Moneda global (MXN Y USD) */}
+  const [usdToMxn, setUsdToMxn] = useState<number | null>(null);
+  const [loadingRate, setLoadingRate] = useState(true);
+  const monedas = ["USD", "MXN"]
+  const [open, setOpen] = useState(false);
+  const [currency, setCurrency] = useState("USD");
+  {/* Precio Dolar */}
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const res = await fetch(
+          "https://api.frankfurter.app/latest?from=USD&to=MXN"
+        );
+        const data = await res.json();
+        if (data?.rates?.MXN) {
+          setUsdToMxn(data.rates.MXN);
+        } else {
+          console.warn("No se pudo obtener MXN, usando fallback");
+          setUsdToMxn(17);
+        }
+      } catch (error) {
+        console.error("Error obteniendo tipo de cambio", error);
+        setUsdToMxn(17);
+      } finally {
+        setLoadingRate(false);
+      }
+    };
+    fetchRate();
+  }, []);
+  {/* Correciones de cambio */}
+  const getAmountByCurrency = (amountUSD: number): number | null => {
+    if (currency === "USD") return amountUSD;
+    if (currency === "MXN" && usdToMxn != null) {
+      return amountUSD * usdToMxn;
+    }
+    return null;
+  };
+  {/* Enseñar y mostrar balance */}
+  const [showOcultar, setOcultar] = useState(false);
+  const formatBalance = (
+    amount: number | null | undefined,
+    hidden: boolean
+  ): string => {
+    if (hidden || amount == null) return "*****.**";
+  
+    const symbol = currency === "USD" ? "$" : "$";
+  
+    return `${symbol}${amount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+  
 
+  {/* Cerrar sesion */}
+  const clearUser = useUserStore((s) => s.clearUser);
   const handleLogout = () => {
     clearUser();
     router.replace("/(inicio)/etapa1");
   };
 
+
   return (
-    <ScrollView className="flex-1 bg-white px-6 pt-6">
-      {/* Saludo */}
-      <Text className="text-2xl font-semibold mb-2">
-        Hola 👋
-      </Text>
-      <Text className="text-gray-500 mb-6">
-        Este es el resumen de tu patrimonio
-      </Text>
-
-      {/* Patrimonio */}
-      <View className="bg-black rounded-2xl p-6 mb-6">
-        <Text className="text-gray-400 mb-1">Patrimonio total</Text>
-        <Text className="text-white text-3xl font-bold">
-          $10,000
-        </Text>
-        <Text className="text-green-400 mt-1">
-          +10.5% este mes
-        </Text>
-      </View>
-
-      {/* Distribución */}
-      <View className="bg-gray-100 rounded-2xl p-6 mb-6">
-        <Text className="text-lg font-semibold mb-4">
-          Distribución
-        </Text>
-
-        <Text className="text-gray-700 mb-1">Cripto: $6,000 (60%)</Text>
-        <Text className="text-gray-700 mb-1">Tarjetas: $3,000 (30%)</Text>
-        <Text className="text-gray-700">Efectivo: $1,000 (10%)</Text>
-      </View>
-
-      {/* Accesos rápidos */}
-      <View className="flex-row justify-between mb-10">
-        <Pressable className="flex-1 bg-green-500 py-4 rounded-xl mr-3">
-          <Text className="text-white text-center font-semibold">
-            + Dinero
+    <SafeAreaView className="flex-1 bg-base2">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        className="bg-base1"
+      >
+        <View className="flex flex-row items-center justify-between py-6 px-[5%] bg-base2">
+          <View className="flex-row gap-2 items-center">
+            <View className="bg-acento py-1 px-1 rounded-full"/>
+            <Text className="font-vs-light text-texto1">
+              Live
+            </Text>
+          </View>
+          <Text className="font-vs-bold text-acento text-2xl">
+            Nombre
           </Text>
-        </Pressable>
-
-        <Pressable className="flex-1 bg-red-500 py-4 rounded-xl ml-3">
-          <Text className="text-white text-center font-semibold">
-            - Dinero
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Logout (solo debug) */}
-      <Pressable onPress={handleLogout}>
-        <Text className="text-center text-gray-400">
-          Cerrar sesión
-        </Text>
-      </Pressable>
-    </ScrollView>
+          <Pressable className="w-1/12" onPress={() => setOcultar(!showOcultar)}>
+            {showOcultar ? (
+              <EyeClose width={20} height={20} />
+            ) : (
+              <Eye width={20} height={20} />
+            )}
+          </Pressable>
+        </View>
+        <View className="flex gap-2 px-[5%] py-5">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="font-vs-regular text-texto2 text-xl">
+                Tu patrimonio
+              </Text>
+              <Text className="font-vs-bold text-texto1 text-4xl">
+                {formatBalance(getAmountByCurrency(balanceUSD), showOcultar)}
+              </Text>
+              <View className="flex-row gap-2">
+                  <Text className="text-texto2 font-vs-regular">
+                  Pnl Diario
+                </Text>
+                <Text className="text-acento font-vs-regular">
+                  {formatBalance(getAmountByCurrency(pnlUSD), showOcultar)} (+10%)
+                </Text>
+              </View>
+            </View>
+            <View>
+              <Pressable className="flex-row bg-base2 py-3 px-4 rounded-full mr-5" onPress={() => setOpen(!open)}>
+                <Text className="text-texto1">{currency}</Text>
+                <Text className="text-texto1">▼</Text>
+              </Pressable>
+              {open && (
+                <View className="absolute bg-base2 rounded-xl mt-12 overflow-hidden z-50 elevation-md border-base2 border-[1px]">
+                {monedas.map((item) => (
+                  <Pressable
+                    key={item}
+                    onPress={() => {
+                      setCurrency(item);
+                      setOpen(false);
+                    }}
+                    className={`px-5 py-4 ${
+                      item === currency ? "bg-base1" : ""
+                    }`}
+                  >
+                    <Text
+                      className={`text-lg ${
+                        item === currency
+                          ? "text-texto1 font-vs-semibold"
+                          : "text-texto2"
+                      }`}
+                    >
+                      {item}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              )}
+            </View>
+          </View>
+        </View>
+        <View className="flex items-center pt-20">
+          <Pressable onPress={handleLogout} className="flex w-1/4 bg-base2 items-center py-2 rounded-full">
+            <Text className="text-texto1">
+              Reset Id
+            </Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
