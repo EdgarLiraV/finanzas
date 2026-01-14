@@ -1,5 +1,6 @@
 import Eye from "@/src/assets/icons/eye.svg";
 import EyeClose from "@/src/assets/icons/eyeclose.svg";
+import PortfolioChart from "@/src/components/Chart";
 import { useUserStore } from "@/src/store/userStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -148,6 +149,9 @@ export default function Home() {
               )}
             </View>
           </View>
+        </View>
+        <View className="mx-[5%]">
+          <PortfolioChart />
         </View>
         <View className="flex items-center pt-20">
           <Pressable onPress={handleLogout} className="flex w-1/4 bg-base2 items-center py-2 rounded-full">
