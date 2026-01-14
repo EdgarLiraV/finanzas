@@ -82,6 +82,7 @@ module.exports = {
         texto2: "#A1A1AA",
         acento: "#52DE5E",
         acentoClaro: "#A78BFA",
+        perdida: "#FF0000",
       },
     },
   },

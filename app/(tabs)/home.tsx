@@ -1,6 +1,9 @@
 import Eye from "@/src/assets/icons/eye.svg";
 import EyeClose from "@/src/assets/icons/eyeclose.svg";
+import Menos from "@/src/assets/icons/menos.svg";
+import Plus from "@/src/assets/icons/plus.svg";
 import PortfolioChart from "@/src/components/Chart";
+import Gastos from "@/src/components/Gastos";
 import { useUserStore } from "@/src/store/userStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -153,12 +156,30 @@ export default function Home() {
         <View className="mx-[5%]">
           <PortfolioChart />
         </View>
-        <View className="flex items-center pt-20">
-          <Pressable onPress={handleLogout} className="flex w-1/4 bg-base2 items-center py-2 rounded-full">
-            <Text className="text-texto1">
-              Reset Id
-            </Text>
+        <View className="mx-[10%] flex-row py-10 justify-between">
+          <Pressable className="flex-row gap-2 bg-base2 rounded-full px-5 py-3 items-center">
+            <Plus height={15} width={15}/>
+            <Text className="text-texto1 font-vs-medium">Ingresos</Text>
           </Pressable>
+          <Pressable className="flex-row gap-2 bg-base2 rounded-full px-5 py-3 items-center">
+            <Menos height={15} width={15}/>
+            <Text className="text-texto1 font-vs-medium">Gastos</Text>
+          </Pressable>
+        </View>
+        <View className="flex mb-5 mx-[5%] px-5 py-5 bg-base2 rounded-3xl gap-3">
+          <View className="flex-row justify-between px-2 py-3">
+            <Text className="text-texto1 font-vs-bold text-xl">
+              Ultimos gastos
+            </Text>
+            <Text className="text-texto2 font-vs-light underline right-3">
+              Ver mas
+            </Text>
+          </View>
+          <Gastos />
+          <Gastos />
+          <Gastos />
+          <Gastos />
+          <Gastos />
         </View>
       </ScrollView>
     </SafeAreaView>

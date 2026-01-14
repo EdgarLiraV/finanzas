@@ -33,44 +33,101 @@ export default function PortfolioChart() {
   ];
 
   const monthlyData = [
-    { value: 9000, label: "1" },
-    { value: 9200, label: "2" },
-    { value: 9400, label: "3" },
-    { value: 9300, label: "4" },
-    { value: 9500, label: "5" },
-    { value: 9700, label: "6" },
-    { value: 9900, label: "7" },
-    { value: 9800, label: "8" },
-    { value: 10000, label: "9" },
-    { value: 10200, label: "10" },
-    { value: 10100, label: "11" },
-    { value: 10300, label: "12" },
-    { value: 10500, label: "13" },
-    { value: 10400, label: "14" },
-    { value: 10600, label: "15" },
-    { value: 10800, label: "16" },
-    { value: 11000, label: "17" },
-    { value: 10900, label: "18" },
-    { value: 11100, label: "19" },
-    { value: 11300, label: "20" },
-    { value: 11400, label: "21" },
-    { value: 11600, label: "22" },
-    { value: 11500, label: "23" },
-    { value: 11700, label: "24" },
-    { value: 11900, label: "25" },
-    { value: 12100, label: "26" },
-    { value: 12300, label: "27" },
-    { value: 12200, label: "28" },
-    { value: 12400, label: "29" },
-    { value: 12600, label: "30" },
+    { value: 0, label: "1" },
+    { value: 100, label: "2" },
+    { value: 250, label: "3" },
+    { value: 500, label: "4" },
+    { value: 300, label: "5" },
+    { value: 600, label: "6" },
+    { value: 1000, label: "7" },
+    { value: 1200, label: "8" },
+    { value: 800, label: "9" },
+    { value: 2000, label: "10" },
+    { value: 2500, label: "11" },
+    { value: 2000, label: "12" },
+    { value: 3000, label: "13" },
+    { value: 3300, label: "14" },
+    { value: 4500, label: "15" },
+    { value: 3800, label: "16" },
+    { value: 5000, label: "17" },
+    { value: 5600, label: "18" },
+    { value: 5000, label: "19" },
+    { value: 7000, label: "20" },
+    { value: 6300, label: "21" },
+    { value: 7200, label: "22" },
+    { value: 8800, label: "23" },
+    { value: 10000, label: "24" },
+    { value: 10200, label: "25" },
+    { value: 9800, label: "26" },
+    { value: 10500, label: "27" },
+    { value: 11000, label: "28" },
+    { value: 10800, label: "29" },
+    { value: 11200, label: "30" },
+  ];
+
+  const quarterlyData = [
+    { value: 0, label: "E" },
+    { value: 1000, label: "" },
+    { value: 1500, label: "F" },
+    { value: 4000, label: "" },
+    { value: 5000, label: "M" },
+    { value: 0, label: "" },
+    { value: 9000, label: "A" },
+  ];
+  
+  const semiAnnualData = [
+    { value: 8500, label: "E" },
+    { value: 9200, label: "F" },
+    { value: 11200, label: "M" },
+    { value: 9800, label: "A" },
+    { value: 12000, label: "M" },
+    { value: 13500, label: "J" },
+  ];
+
+  const yearlyData = [
+    { value: 5000, label: "E" },
+    { value: 6200, label: "F" },
+    { value: 7800, label: "M" },
+    { value: 9000, label: "A" },
+    { value: 11200, label: "M" },
+    { value: 9800, label: "J" },
+    { value: 12000, label: "J" },
+    { value: 13500, label: "A" },
+    { value: 15000, label: "S" },
+    { value: 17000, label: "O" },
+    { value: 18500, label: "N" },
+    { value: 20000, label: "D" },
   ];
 
   /* ---------- DATA SELECTOR ---------- */
   const chartData =
-    period === "1W"
-      ? weeklyData
-      : formatMonthlyLabels(monthlyData, 7);
+  period === "1W"
+    ? weeklyData
+    : period === "1M"
+    ? formatMonthlyLabels(monthlyData, 7)
+    : period === "3M"
+    ? quarterlyData
+    : period === "6M"
+    ? semiAnnualData
+    : yearlyData;
 
+    const getXAxisLabelMarginLeft = (period) => {
+      switch (period) {
+        case "1W":
+          return 8;
+        case "1M":
+          return -8;
+        case "3M":
+          return 8;
+        case "6M":
+          return 13;
+        case "1Y":
+          return -1;
+        default:
+          return 0;
+      }
+    };
+    
   /* ---------- RENDER ---------- */
   return (
     <View className="bg-base2 rounded-2xl p-5">
@@ -80,7 +137,17 @@ export default function PortfolioChart() {
         data={chartData}
         height={190}
         yAxisExtraHeight={40}
-        spacing={period === "1W" ? 40 : 8}
+        spacing={
+          period === "1W"
+            ? 40
+            : period === "1M"
+            ? 8
+            : period === "3M"
+            ? 40
+            : period === "6M"
+            ? 50
+            : 22
+        }        
         thickness={3}
         color="#7C3AED"
         dataPointsColor="#7C3AED"
@@ -101,7 +168,7 @@ export default function PortfolioChart() {
           fontSize: 11,
           width: 24,
           textAlign: "center",
-          marginLeft: period === "1M" ? -8 : 8,
+          marginLeft: getXAxisLabelMarginLeft(period),
         }}
         isAnimated
         animationDuration={700}
@@ -123,28 +190,21 @@ export default function PortfolioChart() {
 
       {/* ---------- PERIOD SELECTOR ---------- */}
       <View className="flex-row justify-between mt-6">
-        <Pressable
-          onPress={() => setPeriod("1W")}
-          className={`px-4 py-1 rounded-full ${
-            period === "1W" ? "bg-base1" : ""
-          }`}
-        >
-          <Text className={period === "1W" ? "text-white" : "text-texto2"}>
-            1W
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setPeriod("1M")}
-          className={`px-4 py-1 rounded-full ${
-            period === "1M" ? "bg-base1" : ""
-          }`}
-        >
-          <Text className={period === "1M" ? "text-white" : "text-texto2"}>
-            1M
-          </Text>
-        </Pressable>
+        {["1W", "1M", "3M", "6M", "1Y"].map((p) => (
+          <Pressable
+            key={p}
+            onPress={() => setPeriod(p)}
+            className={`px-4 py-1 rounded-full ${
+              period === p ? "bg-base1" : ""
+            }`}
+          >
+            <Text className={period === p ? "text-white" : "text-texto2"}>
+              {p}
+            </Text>
+          </Pressable>
+        ))}
       </View>
+
     </View>
   );
 }
