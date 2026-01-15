@@ -3,12 +3,25 @@ import EyeClose from "@/src/assets/icons/eyeclose.svg";
 import Menos from "@/src/assets/icons/menos.svg";
 import Plus from "@/src/assets/icons/plus.svg";
 import PortfolioChart from "@/src/components/Chart";
-import Gastos from "@/src/components/Gastos";
+import MovimientoItem from "@/src/components/Movimiento";
+import MovimientoModal from "@/src/components/MovimientoModal";
+import { useMovimientosStore } from "@/src/store/movimientosStore";
 import { useUserStore } from "@/src/store/userStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+export type Movimiento = {
+  id: string;
+  tipo: "ingreso" | "gasto";
+  categoria?: "comida" | "casa" | "fiesta" | "necesario" | "tarifas";
+  metodo?: "efectivo" | "tarjeta";
+  concepto: string;
+  cantidad: number;
+  fecha: string;
+};
+
 export default function Home() {
   {/* BALANCE y PNL */}
   const balanceUSD = 12000;
@@ -74,6 +87,16 @@ export default function Home() {
     router.replace("/(inicio)/etapa1");
   };
 
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTipo, setModalTipo] = useState<"ingreso" | "gasto">("gasto");
+  const movimientos = useMovimientosStore((s) => s.movimientos);
+  const addMovimiento = useMovimientosStore((s) => s.addMovimiento);
+
+  const handleSave = (nuevoMovimiento: Movimiento) => {
+    addMovimiento(nuevoMovimiento);
+    setModalVisible(false);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-base2">
@@ -156,32 +179,57 @@ export default function Home() {
         <View className="mx-[5%]">
           <PortfolioChart />
         </View>
-        <View className="mx-[10%] flex-row py-10 justify-between">
-          <Pressable className="flex-row gap-2 bg-base2 rounded-full px-5 py-3 items-center">
+        <Text className="text-texto1 text-2xl px-[8%] pt-10 font-vs-bold">Añadir movimientos</Text>
+        <View className="mx-[8%] flex-row py-10 justify-between">
+          <Pressable 
+          className="flex-row gap-2 bg-base2 rounded-full px-8 py-3 items-center"
+          onPress={() => {
+            setModalTipo("ingreso");
+            setModalVisible(true);
+          }}>
             <Plus height={15} width={15}/>
             <Text className="text-texto1 font-vs-medium">Ingresos</Text>
           </Pressable>
-          <Pressable className="flex-row gap-2 bg-base2 rounded-full px-5 py-3 items-center">
+          <Pressable 
+          className="flex-row gap-2 bg-base2 rounded-full px-8 py-3 items-center"
+          onPress={() => {
+            setModalTipo("gasto");
+            setModalVisible(true);
+          }}>
             <Menos height={15} width={15}/>
             <Text className="text-texto1 font-vs-medium">Gastos</Text>
           </Pressable>
         </View>
-        <View className="flex mb-5 mx-[5%] px-5 py-5 bg-base2 rounded-3xl gap-3">
-          <View className="flex-row justify-between px-2 py-3">
+        <View className="flex mb-5 mx-[5%] px-5 py-5 bg-base2 rounded-3xl max-h-96 overflow-hidden">
+          <View className="flex-row justify-between px-2 pt-3 pb-8">
             <Text className="text-texto1 font-vs-bold text-xl">
-              Ultimos gastos
+              Ultimos movimientos
             </Text>
-            <Text className="text-texto2 font-vs-light underline right-3">
-              Ver mas
-            </Text>
+            <Pressable onPress={() => router.push("/movimientos")}>
+              <Text className="text-texto2 font-vs-light underline right-3">
+                Ver mas
+              </Text>
+            </Pressable>
           </View>
-          <Gastos />
-          <Gastos />
-          <Gastos />
-          <Gastos />
-          <Gastos />
+          <View className="h-72 z-50">
+            <ScrollView
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12 }}
+            >
+              {movimientos.slice(0,10).map((mov) => (
+                <MovimientoItem key={mov.id} movimiento={mov} />
+              ))}
+            </ScrollView>
+          </View>
         </View>
       </ScrollView>
+      <MovimientoModal
+        visible={modalVisible}
+        tipo={modalTipo}
+        onClose={() => setModalVisible(false)}
+        onSave={handleSave}
+      />
     </SafeAreaView>
   );
 }
