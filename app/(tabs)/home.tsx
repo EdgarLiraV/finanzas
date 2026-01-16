@@ -1,10 +1,12 @@
+import Up from "@/src/assets/icons/down.svg";
 import Eye from "@/src/assets/icons/eye.svg";
 import EyeClose from "@/src/assets/icons/eyeclose.svg";
-import Menos from "@/src/assets/icons/menos.svg";
-import Plus from "@/src/assets/icons/plus.svg";
+import Transfer from "@/src/assets/icons/transfer.svg";
+import Down from "@/src/assets/icons/up.svg";
 import PortfolioChart from "@/src/components/Chart";
 import MovimientoItem from "@/src/components/Movimiento";
 import MovimientoModal from "@/src/components/MovimientoModal";
+import Nav from "@/src/components/Nav";
 import { useMovimientosStore } from "@/src/store/movimientosStore";
 import { useUserStore } from "@/src/store/userStore";
 import { router } from "expo-router";
@@ -12,15 +14,20 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+export type Metodo = "efectivo" | "tarjeta";
+
 export type Movimiento = {
   id: string;
-  tipo: "ingreso" | "gasto";
-  categoria?: "comida" | "casa" | "fiesta" | "necesario" | "tarifas";
-  metodo?: "efectivo" | "tarjeta";
+  tipo: "ingreso" | "gasto" | "transferencia";
+  categoria?: string;
+  metodo?: Metodo;
+  desde?: Metodo;
+  hacia?: Metodo;
   concepto: string;
   cantidad: number;
   fecha: string;
 };
+
 
 export default function Home() {
   {/* BALANCE y PNL */}
@@ -89,14 +96,15 @@ export default function Home() {
 
   
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalTipo, setModalTipo] = useState<"ingreso" | "gasto">("gasto");
+  const [modalTipo, setModalTipo] =
+  useState<"ingreso" | "gasto" | "transferencia">("gasto");
   const movimientos = useMovimientosStore((s) => s.movimientos);
   const addMovimiento = useMovimientosStore((s) => s.addMovimiento);
 
   const handleSave = (nuevoMovimiento: Movimiento) => {
     addMovimiento(nuevoMovimiento);
     setModalVisible(false);
-  };
+  };  
 
   return (
     <SafeAreaView className="flex-1 bg-base2">
@@ -181,24 +189,39 @@ export default function Home() {
         </View>
         <Text className="text-texto1 text-2xl px-[8%] pt-10 font-vs-bold">Añadir movimientos</Text>
         <View className="mx-[8%] flex-row py-10 justify-between">
-          <Pressable 
-          className="flex-row gap-2 bg-base2 rounded-full px-8 py-3 items-center"
-          onPress={() => {
-            setModalTipo("ingreso");
-            setModalVisible(true);
-          }}>
-            <Plus height={15} width={15}/>
-            <Text className="text-texto1 font-vs-medium">Ingresos</Text>
-          </Pressable>
-          <Pressable 
-          className="flex-row gap-2 bg-base2 rounded-full px-8 py-3 items-center"
-          onPress={() => {
-            setModalTipo("gasto");
-            setModalVisible(true);
-          }}>
-            <Menos height={15} width={15}/>
-            <Text className="text-texto1 font-vs-medium">Gastos</Text>
-          </Pressable>
+          <View className="flex gap-2">
+            <Pressable 
+            className="flex bg-base2 rounded-xl px-7 py-7 items-center"
+            onPress={() => {
+              setModalTipo("ingreso");
+              setModalVisible(true);
+            }}>
+              <Down height={30} width={30}/>
+            </Pressable>
+            <Text className="text-texto2 text-center">Ingreso</Text>
+          </View>
+          <View className="flex gap-2">
+            <Pressable 
+            className="flex bg-base2 rounded-xl px-7 py-7 items-center"
+            onPress={() => {
+              setModalTipo("gasto");
+              setModalVisible(true);
+            }}>
+              <Up height={30} width={30}/>
+            </Pressable>
+            <Text className="text-texto2 text-center">Gasto</Text>
+          </View>
+          <View className="flex gap-2">
+            <Pressable 
+            className="flex bg-base2 rounded-xl px-7 py-7 items-center"
+            onPress={() => {
+              setModalTipo("transferencia");
+              setModalVisible(true);
+            }}>
+              <Transfer height={30} width={30}/>
+            </Pressable>
+            <Text className="text-texto2 text-center">Transferencia</Text>
+          </View>
         </View>
         <View className="flex mb-5 mx-[5%] px-5 py-5 bg-base2 rounded-3xl max-h-96 overflow-hidden">
           <View className="flex-row justify-between px-2 pt-3 pb-8">
@@ -224,6 +247,9 @@ export default function Home() {
           </View>
         </View>
       </ScrollView>
+      <View className="absolute bottom-10 w-screen items-center">
+        <Nav screenActual="home"/>
+      </View>
       <MovimientoModal
         visible={modalVisible}
         tipo={modalTipo}

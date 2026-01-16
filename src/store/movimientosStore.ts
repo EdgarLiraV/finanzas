@@ -2,11 +2,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+export type Metodo = "efectivo" | "tarjeta";
+
 export type Movimiento = {
     id: string;
-    tipo: "ingreso" | "gasto";
+    tipo: "ingreso" | "gasto" | "transferencia";
     categoria?: string;
-    metodo?: string;
+    metodo?: Metodo;
+    desde?: Metodo;
+    hacia?: Metodo;
     concepto: string;
     cantidad: number;
     fecha: string;
@@ -22,11 +26,12 @@ export const useMovimientosStore = create<MovimientosState>()(
     persist(
         (set) => ({
             movimientos: [],
-        addMovimiento: (mov) =>
-            set((state) => ({
-                movimientos: [mov, ...state.movimientos],
-            })),
-        clearMovimientos: () => set({ movimientos: [] }),
+
+            addMovimiento: (mov) =>
+                set((state) => ({
+                    movimientos: [mov, ...state.movimientos],
+                })),
+            clearMovimientos: () => set({ movimientos: [] }),
         }),
         {
             name: "movimientos-storage",
