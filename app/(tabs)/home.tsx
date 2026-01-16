@@ -223,7 +223,7 @@ export default function Home() {
             <Text className="text-texto2 text-center">Transferencia</Text>
           </View>
         </View>
-        <View className="flex mb-5 mx-[5%] px-5 py-5 bg-base2 rounded-3xl max-h-96 overflow-hidden">
+        <View className="flex mb-28 mx-[5%] px-5 py-5 bg-base2 rounded-3xl max-h-96 overflow-hidden">
           <View className="flex-row justify-between px-2 pt-3 pb-8">
             <Text className="text-texto1 font-vs-bold text-xl">
               Ultimos movimientos
