@@ -1,8 +1,9 @@
 import Arrow from "@/src/assets/icons/arrow-right.svg";
 import Close from "@/src/assets/icons/close.svg";
 import { useFinancial } from "@/src/contexts/FinanciialContext";
+import { Card } from "@/src/types/financial.types";
 import { useEffect, useState } from "react";
-import { Animated, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Animated, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 const CONCEPTOS_INGRESO = [
   "Deposito",
@@ -48,7 +49,14 @@ export default function MovimientoModal({
   onClose,
   onSave,
 }: MovimientoModalProps) {
-  const { addMoney, subtractMoney, transfer, getAllCards } = useFinancial();
+  const { 
+    addMoney, 
+    subtractMoney, 
+    transfer, 
+    getAllCards,
+    getCashBalance,
+    getCardById
+  } = useFinancial();
   const cards = getAllCards();
 
   const [concepto, setConcepto] = useState("");
@@ -80,22 +88,52 @@ export default function MovimientoModal({
   }, [metodo, cards]);
 
   const handleSave = () => {
-    if (!cantidad) return;
+    if (!cantidad) {
+      Alert.alert("Error", "Ingresa una cantidad válida");
+      return;
+    }
   
     const cantidadNum = Number(cantidad);
 
+    if (cantidadNum <= 0) {
+      Alert.alert("Error", "La cantidad debe ser mayor a 0");
+      return;
+    }
+
     if (tipo === "transferencia") {
-      // Transferencia: efectivo ↔ tarjeta
+      // ========== TRANSFERENCIA ==========
       const from = metodo === "efectivo" ? "efectivo" : "tarjeta";
       const to = metodo === "efectivo" ? "tarjeta" : "efectivo";
 
-      if (from === "tarjeta" || to === "tarjeta") {
-        if (!selectedCardId) {
-          console.warn("Selecciona una tarjeta para transferir");
+      // Validar que haya tarjeta seleccionada
+      if (!selectedCardId && (from === "tarjeta" || to === "tarjeta")) {
+        Alert.alert("Error", "Selecciona una tarjeta para transferir");
+        return;
+      }
+
+      // Validar fondos suficientes
+      if (from === "efectivo") {
+        const cashBalance = getCashBalance();
+        if (cashBalance < cantidadNum) {
+          Alert.alert(
+            "Fondos insuficientes", 
+            `No tienes suficiente efectivo. Disponible: $${cashBalance.toFixed(2)}`
+          );
+          return;
+        }
+      } else {
+        // from === "tarjeta"
+        const card = getCardById(selectedCardId!);
+        if (!card || card.balance < cantidadNum) {
+          Alert.alert(
+            "Fondos insuficientes",
+            `No tienes suficiente saldo en ${card?.name || "esta tarjeta"}. Disponible: $${card?.balance.toFixed(2) || 0}`
+          );
           return;
         }
       }
 
+      // Realizar transferencia
       transfer(
         cantidadNum,
         from,
@@ -114,11 +152,14 @@ export default function MovimientoModal({
         fecha: new Date().toLocaleDateString("es-MX"),
       });
     } else if (tipo === "ingreso") {
-      // Ingreso
-      if (!concepto) return;
+      // ========== INGRESO ==========
+      if (!concepto) {
+        Alert.alert("Error", "Selecciona un concepto");
+        return;
+      }
 
       if (metodo === "tarjeta" && !selectedCardId) {
-        console.warn("Selecciona una tarjeta");
+        Alert.alert("Error", "Selecciona una tarjeta");
         return;
       }
 
@@ -133,12 +174,36 @@ export default function MovimientoModal({
         fecha: new Date().toLocaleDateString("es-MX"),
       });
     } else if (tipo === "gasto") {
-      // Gasto
-      if (!concepto) return;
+      // ========== GASTO ==========
+      if (!concepto) {
+        Alert.alert("Error", "Selecciona una categoría");
+        return;
+      }
 
       if (metodo === "tarjeta" && !selectedCardId) {
-        console.warn("Selecciona una tarjeta");
+        Alert.alert("Error", "Selecciona una tarjeta");
         return;
+      }
+
+      // Validar fondos suficientes
+      if (metodo === "efectivo") {
+        const cashBalance = getCashBalance();
+        if (cashBalance < cantidadNum) {
+          Alert.alert(
+            "Fondos insuficientes",
+            `No tienes suficiente efectivo. Disponible: $${cashBalance.toFixed(2)}`
+          );
+          return;
+        }
+      } else {
+        const card = getCardById(selectedCardId!);
+        if (!card || card.balance < cantidadNum) {
+          Alert.alert(
+            "Fondos insuficientes",
+            `No tienes suficiente saldo en ${card?.name || "esta tarjeta"}. Disponible: $${card?.balance.toFixed(2) || 0}`
+          );
+          return;
+        }
       }
 
       subtractMoney(cantidadNum, metodo, selectedCardId || undefined);
@@ -221,23 +286,38 @@ export default function MovimientoModal({
                 </Pressable>
               </View>
 
-              {/* SELECTOR DE TARJETA (solo si método es tarjeta) */}
-              {metodo === "tarjeta" && cards.length > 0 && (
+              {/* SELECTOR DE TARJETA */}
+              {/* Mostrar cuando: 
+                  1. metodo === "tarjeta" (tarjeta es origen o destino según el tipo)
+                  2. tipo === "transferencia" && metodo === "efectivo" (tarjeta es destino)
+              */}
+              {((metodo === "tarjeta" || tipo === "transferencia") && cards.length > 0) && (
                 <View className="gap-2">
-                  <Text className="text-texto2">Tarjeta</Text>
+                  <Text className="text-texto2">
+                    {tipo === "transferencia" 
+                      ? (metodo === "efectivo" ? "Hacia tarjeta" : "Desde tarjeta")
+                      : "Tarjeta"}
+                  </Text>
                   <Pressable
                     onPress={() => setShowCardSelector(!showCardSelector)}
                     className="bg-base1 rounded-xl px-4 py-3 flex-row justify-between items-center"
                   >
-                    <Text className="text-texto1">
-                      {selectedCard?.name || "Selecciona una tarjeta"}
-                    </Text>
+                    <View>
+                      <Text className="text-texto1">
+                        {selectedCard?.name || "Selecciona una tarjeta"}
+                      </Text>
+                      {selectedCard && (
+                        <Text className="text-texto2 text-xs mt-1">
+                          Disponible: ${selectedCard.balance.toFixed(2)}
+                        </Text>
+                      )}
+                    </View>
                     <Text className="text-texto2">▼</Text>
                   </Pressable>
 
                   {showCardSelector && (
                     <View className="bg-base1 rounded-xl overflow-hidden">
-                      {cards.map(card => (
+                      {cards.map((card: Card) => (
                         <Pressable
                           key={card.id}
                           onPress={() => {
@@ -250,7 +330,7 @@ export default function MovimientoModal({
                         >
                           <Text className="text-texto1">{card.name}</Text>
                           <Text className="text-texto2 text-xs">
-                            ${card.balance.toFixed(2)}
+                            Disponible: ${card.balance.toFixed(2)}
                           </Text>
                         </Pressable>
                       ))}
@@ -259,8 +339,8 @@ export default function MovimientoModal({
                 </View>
               )}
 
-              {/* Mensaje si no hay tarjetas */}
-              {metodo === "tarjeta" && cards.length === 0 && (
+              {/* Mensaje si no hay tarjetas (solo mostrar cuando sea relevante) */}
+              {((metodo === "tarjeta" || tipo === "transferencia") && cards.length === 0) && (
                 <View className="bg-base1 rounded-xl px-4 py-3">
                   <Text className="text-texto2 text-center">
                     No tienes tarjetas. Agrega una primero.

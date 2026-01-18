@@ -149,16 +149,10 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
         return { ...prev, cash: prev.cash + amount };
       } else {
         // Para tarjeta, SIEMPRE necesitamos un cardId
-        if (!cardId) {
-          console.warn('Se requiere cardId para agregar dinero a tarjeta');
-          return prev;
-        }
+        if (!cardId) return prev;
 
         const cardExists = prev.cards.some(c => c.id === cardId);
-        if (!cardExists) {
-          console.warn('Tarjeta no encontrada:', cardId);
-          return prev;
-        }
+        if (!cardExists) return prev;
 
         return {
           ...prev,
@@ -177,28 +171,15 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
 
     setData(prev => {
       if (type === 'efectivo') {
-        if (prev.cash < amount) {
-          console.warn('Fondos insuficientes en efectivo');
-          return prev;
-        }
+        if (prev.cash < amount) return prev;
         return { ...prev, cash: prev.cash - amount };
       } else {
         // Para tarjeta, SIEMPRE necesitamos un cardId
-        if (!cardId) {
-          console.warn('Se requiere cardId para restar dinero de tarjeta');
-          return prev;
-        }
+        if (!cardId) return prev;
 
         const card = prev.cards.find(c => c.id === cardId);
-        if (!card) {
-          console.warn('Tarjeta no encontrada:', cardId);
-          return prev;
-        }
-
-        if (card.balance < amount) {
-          console.warn('Fondos insuficientes en tarjeta');
-          return prev;
-        }
+        if (!card) return prev;
+        if (card.balance < amount) return prev;
 
         return {
           ...prev,
@@ -213,54 +194,28 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   };
 
   const transfer = (amount: number, from: Metodo, to: Metodo, fromCardId?: string, toCardId?: string) => {
-    if (amount <= 0) {
-      console.warn('Cantidad debe ser mayor a 0');
-      return;
-    }
-    
-    if (from === to) {
-      console.warn('No puedes transferir al mismo método');
-      return;
-    }
+    if (amount <= 0) return;
+    if (from === to) return;
 
     setData(prev => {
       // Validar fondos suficientes en el origen
       if (from === 'efectivo') {
-        if (prev.cash < amount) {
-          console.warn('Fondos insuficientes en efectivo');
-          return prev;
-        }
+        if (prev.cash < amount) return prev;
       } else {
         // from === 'tarjeta'
-        if (!fromCardId) {
-          console.warn('Se requiere fromCardId para transferir desde tarjeta');
-          return prev;
-        }
+        if (!fromCardId) return prev;
         
         const fromCard = prev.cards.find(c => c.id === fromCardId);
-        if (!fromCard) {
-          console.warn('Tarjeta de origen no encontrada');
-          return prev;
-        }
-        
-        if (fromCard.balance < amount) {
-          console.warn('Fondos insuficientes en tarjeta');
-          return prev;
-        }
+        if (!fromCard) return prev;
+        if (fromCard.balance < amount) return prev;
       }
 
       // Validar que existe la tarjeta de destino si es necesario
       if (to === 'tarjeta') {
-        if (!toCardId) {
-          console.warn('Se requiere toCardId para transferir a tarjeta');
-          return prev;
-        }
+        if (!toCardId) return prev;
         
         const toCard = prev.cards.find(c => c.id === toCardId);
-        if (!toCard) {
-          console.warn('Tarjeta de destino no encontrada');
-          return prev;
-        }
+        if (!toCard) return prev;
       }
 
       // Realizar transferencia
