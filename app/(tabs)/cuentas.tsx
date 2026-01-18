@@ -7,34 +7,49 @@ import FixBalanceModal from "@/src/components/modals/FixBalanceModal";
 import RemoveCardModal from "@/src/components/modals/RemoveCardModal";
 import Nav from "@/src/components/Nav";
 import Pastel from "@/src/components/Pastel";
+import { useFinancial } from "@/src/contexts/FinanciialContext";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 // import { PieChart } from "react-native-gifted-charts"; // luego
 
 export default function Cuentas() {
-  const [cards, setCards] = useState([
-    { id: "1", name: "Revolut", usd: 3200 },
-    { id: "2", name: "BBVA", usd: 1800 },
-]);
+  const {
+    getCashBalance,
+    getCardsBalance,
+    getAllCards,
+    addCard,
+    removeCard,
+    fixCardBalance,
+    fixCashBalance,
+    isLoading,
+  } = useFinancial();
 
-const [efectivoTotal, setEfectivoTotal] = useState(5000);
-const [fixEfectivoOpen, setFixEfectivoOpen] = useState(false);
+  const cards = getAllCards();
+  const efectivoTotal = getCashBalance();
+  const tarjetasTotal = getCardsBalance();
 
-const totalUSD = cards.reduce((s, c) => s + c.usd, 0);
-
-const distribution = cards.map((c) => ({
+  // Calcular distribución por tarjeta
+  const distribution = cards.map((c) => ({
     id: c.id,
     name: c.name,
-    usd: c.usd,
-    percent: Math.round((c.usd / totalUSD) * 100),
-}));
+    usd: c.balance,
+    percent: tarjetasTotal > 0 ? Math.round((c.balance / tarjetasTotal) * 100) : 0,
+  }));
 
-// MODALES
-const [addOpen, setAddOpen] = useState(false);
-const [removeOpen, setRemoveOpen] = useState(false);
-const [fixOpen, setFixOpen] = useState(false);
+  // MODALES
+  const [addOpen, setAddOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [fixOpen, setFixOpen] = useState(false);
+  const [fixEfectivoOpen, setFixEfectivoOpen] = useState(false);
 
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-base2 justify-center items-center">
+        <Text className="text-texto1">Cargando...</Text>
+      </SafeAreaView>
+    );
+  }
     return (
         <SafeAreaView className="flex-1 bg-base2">
             <ScrollView
@@ -68,19 +83,19 @@ const [fixOpen, setFixOpen] = useState(false);
                   ]}
                 />
 
-                <CardTarjeta
-                  totalUSD={totalUSD}
-                  fullDistribution={distribution}
-                  onAddCard={() => setAddOpen(true)}
-                  onRemoveCard={() => setRemoveOpen(true)}
-                  onFixBalance={() => setFixOpen(true)}
-                />
-                <View className="mb-20">
-                  <CardEfectivo
-                    totalUSD={efectivoTotal}
-                    onFixBalance={() => setFixEfectivoOpen(true)}
-                  />
-                </View>
+<CardTarjeta
+            totalUSD={tarjetasTotal}
+            fullDistribution={distribution}
+            onAddCard={() => setAddOpen(true)}
+            onRemoveCard={() => setRemoveOpen(true)}
+            onFixBalance={() => setFixOpen(true)}
+          />
+          <View className="mb-20">
+            <CardEfectivo
+              totalUSD={efectivoTotal}
+              onFixBalance={() => setFixEfectivoOpen(true)}
+            />
+          </View>
                 </View>
             </ScrollView>
             <View className="absolute bottom-10 w-screen items-center">
@@ -91,75 +106,37 @@ const [fixOpen, setFixOpen] = useState(false);
 
 
             <AddCardModal
-                visible={addOpen}
-                onClose={() => setAddOpen(false)}
-                onSubmit={(name) =>
-                    setCards((prev) => [
-                        ...prev,
-                        { id: Date.now().toString(), name, usd: 0 },
-                    ])
-                }
-            />
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSubmit={(name) => {
+          addCard(name, 0); // Nueva tarjeta empieza en $0
+        }}
+      />
 
-            <RemoveCardModal
-                visible={removeOpen}
-                onClose={() => setRemoveOpen(false)}
-                cards={cards}
-                onRemove={(id) =>
-                    setCards((prev) => prev.filter((c) => c.id !== id))
-                }
-            />
+      <RemoveCardModal
+        visible={removeOpen}
+        onClose={() => setRemoveOpen(false)}
+        cards={cards}
+        onRemove={(id) => removeCard(id)}
+      />
 
-            <FixBalanceModal
-              visible={fixOpen}
-              onClose={() => setFixOpen(false)}
-              cards={cards}
-              onSubmit={(updatedCards) => {
-                setCards((prev) =>
-                  prev.map((c) => {
-                    const updated = updatedCards.find((u) => u.id === c.id);
-                    return updated ? { ...c, usd: updated.usd } : c;
-                  })
-                );
-              }}  
-            />
+      <FixBalanceModal
+        visible={fixOpen}
+        onClose={() => setFixOpen(false)}
+        cards={cards}
+        onSubmit={(updatedCards) => {
+          updatedCards.forEach((updated) => {
+            fixCardBalance(updated.id, updated.usd);
+          });
+        }}
+      />
 
-            <FixBalanceEfectivoModal
-              visible={fixEfectivoOpen}
-              totalUSD={efectivoTotal}
-              onClose={() => setFixEfectivoOpen(false)}
-              onSubmit={(newAmount) => setEfectivoTotal(newAmount)}
-            />
-
-
-            
-        </SafeAreaView>
-    );
-}
-
-/* ---------- COMPONENTES ---------- */
-
-
-function InfoCard({
-  title,
-  subtitle,
-  value,
-}: {
-  title: string;
-  subtitle: string;
-  value: string;
-}) {
-  return (
-    <View className="bg-base2 rounded-2xl px-5 py-4">
-      <Text className="text-texto1 font-vs-medium text-lg">
-        {title}
-      </Text>
-      <Text className="text-texto2 text-sm mt-1">
-        {subtitle}
-      </Text>
-      <Text className="text-texto1 font-vs-bold text-2xl mt-3">
-        {value}
-      </Text>
-    </View>
+      <FixBalanceEfectivoModal
+        visible={fixEfectivoOpen}
+        totalUSD={efectivoTotal}
+        onClose={() => setFixEfectivoOpen(false)}
+        onSubmit={(newAmount) => fixCashBalance(newAmount)}
+      />
+    </SafeAreaView>
   );
 }

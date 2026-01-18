@@ -1,6 +1,11 @@
 import { Pressable, Text, View } from "react-native";
 
-export default function CardEfectivo({ totalUSD, onFixBalance }) {
+type CardEfectivoProps = {
+  totalUSD: number;
+  onFixBalance: () => void;
+};
+
+export default function CardEfectivo({ totalUSD, onFixBalance }: CardEfectivoProps) {
   return (
     <View className="flex bg-base2 rounded-2xl p-5 gap-4">
       {/* HEADER */}

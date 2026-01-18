@@ -1,11 +1,6 @@
+import { Card } from "@/src/types/financial.types";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-
-type Card = {
-  id: string;
-  name: string;
-  usd: number;
-};
 
 type FixBalanceModalProps = {
   visible: boolean;
@@ -23,11 +18,11 @@ export default function FixBalanceModal({
   // Mantener estado individual por tarjeta
   const [amounts, setAmounts] = useState<{ [id: string]: string }>({});
 
-  // Inicializar valores con los usd actuales
+  // Inicializar valores con los balance actuales
   useEffect(() => {
     const init: { [id: string]: string } = {};
     cards.forEach((c) => {
-      init[c.id] = c.usd.toString();
+      init[c.id] = c.balance.toString();
     });
     setAmounts(init);
   }, [cards, visible]);

@@ -1,7 +1,9 @@
+import { FinancialProvider } from '@/src/contexts/FinanciialContext';
 import { Stack } from "expo-router";
-
 export default function TabsLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }} />
+    <FinancialProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </FinancialProvider>
   );
 }

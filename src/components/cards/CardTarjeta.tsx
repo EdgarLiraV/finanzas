@@ -1,12 +1,27 @@
 import { Pressable, Text, View } from "react-native";
 
+type CardDistribution = {
+  id: string;
+  name: string;
+  usd: number;
+  percent: number;
+};
+
+type CardTarjetaProps = {
+  totalUSD: number;
+  fullDistribution: CardDistribution[];
+  onAddCard: () => void;
+  onRemoveCard: () => void;
+  onFixBalance: () => void;
+};
+
 export default function CardTarjeta({
   totalUSD,
   fullDistribution,
   onAddCard,
   onRemoveCard,
   onFixBalance,
-}) {
+}: CardTarjetaProps) {
   return (
     <View className="flex bg-base2 rounded-2xl p-5 gap-4">
       {/* HEADER */}
@@ -19,10 +34,7 @@ export default function CardTarjeta({
 
       {/* DISTRIBUCIÓN */}
       {fullDistribution.map((item) => (
-        <View
-          key={item.id ?? item.name}
-          className="flex-row justify-between"
-        >
+        <View key={item.id} className="flex-row justify-between">
           <Text className="text-texto1 font-vs-regular">{item.name}</Text>
           <Text className="text-texto1 font-vs-regular">
             {item.percent}% · ${item.usd.toLocaleString()}

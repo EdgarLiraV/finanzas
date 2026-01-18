@@ -1,9 +1,5 @@
+import { Card } from "@/src/types/financial.types";
 import { Modal, Pressable, Text, View } from "react-native";
-
-type Card = {
-  id: string;
-  name: string;
-};
 
 type RemoveCardModalProps = {
   visible: boolean;
