@@ -11,7 +11,7 @@ type SegmentData = {
 };
 
 export default function Pastel() {
-  const { getCashBalance, getCardsBalance, getTotalBalance } = useFinancial();
+  const { getCashBalance, getCardsBalance, getCryptoBalance, getTotalBalance } = useFinancial();
 
   const [activo, setActivo] = useState<SegmentData | null>(null);
   const [chartKey, setChartKey] = useState(0);
@@ -32,6 +32,7 @@ export default function Pastel() {
 
   const cashBalance = getCashBalance();
   const cardsBalance = getCardsBalance();
+  const cryptoBalance = getCryptoBalance();
   const total = getTotalBalance();
 
   // Si no hay dinero, mostrar vacío
@@ -44,6 +45,13 @@ export default function Pastel() {
   }
 
   const data = [
+    {
+      value: cryptoBalance,
+      color: "#A855F7",
+      label: "Crypto",
+      strokeWidth: activo?.label === "Crypto" ? 6 : 0,
+      strokeColor: "#a855f7",
+    },
     {
       value: cardsBalance,
       color: "#60A5FA",

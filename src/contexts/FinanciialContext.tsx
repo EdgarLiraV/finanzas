@@ -1,13 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Card, DailySnapshot, FinancialData, Metodo, Snapshots } from '../types/financial.types';
+import { Card, CryptoWallet, DailySnapshot, FinancialData, Metodo, Snapshots } from '../types/financial.types';
 import { getTodayDate, maintainSnapshots, shouldTakeSnapshot, SNAPSHOT_LIMITS } from '../utils/snapshotManager';
+import { calculateWalletValue, getWalletTokens } from '../utils/solscanAPI';
 
 const STORAGE_KEY = '@financial_data';
 
 const initialData: FinancialData = {
   cash: 0,
   cards: [],
+  cryptoWallets: [],
   snapshots: {
     weekly: [],
     monthly: [],
@@ -23,9 +25,12 @@ interface FinancialContextType {
   getTotalBalance: () => number;
   getCashBalance: () => number;
   getCardsBalance: () => number;
+  getCryptoBalance: () => number;
   getCardById: (id: string) => Card | undefined;
   getAllCards: () => Card[];
-  getDistribution: () => { cash: number; cards: number };
+  getAllWallets: () => CryptoWallet[];
+  getWalletById: (id: string) => CryptoWallet | undefined;
+  getDistribution: () => { cash: number; cards: number; crypto: number };
   getSnapshots: (period: keyof Snapshots) => DailySnapshot[];
   getDailyPnL: () => number;
   
@@ -40,11 +45,18 @@ interface FinancialContextType {
   fixCardBalance: (cardId: string, newBalance: number) => void;
   fixCashBalance: (newBalance: number) => void;
   
+  // Gestión de Crypto Wallets
+  addWallet: (address: string, nickname?: string) => Promise<void>;
+  removeWallet: (walletId: string) => void;
+  refreshWallet: (walletId: string) => Promise<void>;
+  refreshAllWallets: () => Promise<void>;
+  
   // Snapshots
   takeSnapshot: () => void;
   
   // Estado
   isLoading: boolean;
+  isRefreshingCrypto: boolean;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -52,6 +64,7 @@ const FinancialContext = createContext<FinancialContextType | undefined>(undefin
 export function FinancialProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<FinancialData>(initialData);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshingCrypto, setIsRefreshingCrypto] = useState(false);
 
   // Cargar datos al inicio
   useEffect(() => {
@@ -76,7 +89,14 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setData(JSON.parse(stored));
+        const parsedData = JSON.parse(stored);
+        
+        // MIGRACIÓN: Agregar cryptoWallets si no existe
+        if (!parsedData.cryptoWallets) {
+          parsedData.cryptoWallets = [];
+        }
+        
+        setData(parsedData);
       }
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -97,7 +117,8 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
   
   const getTotalBalance = (): number => {
     const cardsTotal = data.cards.reduce((sum, card) => sum + card.balance, 0);
-    return data.cash + cardsTotal;
+    const cryptoTotal = data.cryptoWallets.reduce((sum, wallet) => sum + wallet.totalMXN, 0);
+    return data.cash + cardsTotal + cryptoTotal;
   };
 
   const getCashBalance = (): number => {
@@ -108,6 +129,10 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     return data.cards.reduce((sum, card) => sum + card.balance, 0);
   };
 
+  const getCryptoBalance = (): number => {
+    return data.cryptoWallets.reduce((sum, wallet) => sum + wallet.totalMXN, 0);
+  };
+
   const getCardById = (id: string): Card | undefined => {
     return data.cards.find(card => card.id === id);
   };
@@ -116,13 +141,22 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     return data.cards;
   };
 
+  const getAllWallets = (): CryptoWallet[] => {
+    return data.cryptoWallets;
+  };
+
+  const getWalletById = (id: string): CryptoWallet | undefined => {
+    return data.cryptoWallets.find(wallet => wallet.id === id);
+  };
+
   const getDistribution = () => {
     const total = getTotalBalance();
-    if (total === 0) return { cash: 0, cards: 0 };
+    if (total === 0) return { cash: 0, cards: 0, crypto: 0 };
     
     return {
       cash: (data.cash / total) * 100,
       cards: (getCardsBalance() / total) * 100,
+      crypto: (getCryptoBalance() / total) * 100,
     };
   };
 
@@ -287,6 +321,112 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  // ==================== GESTIÓN DE CRYPTO WALLETS ====================
+  
+  const addWallet = async (address: string, nickname?: string) => {
+    try {
+      setIsRefreshingCrypto(true);
+      
+      // Obtener tokens de la wallet
+      const tokens = await getWalletTokens(address);
+      const { totalUSD, totalMXN } = calculateWalletValue(tokens);
+
+      const newWallet: CryptoWallet = {
+        id: Date.now().toString(),
+        address,
+        nickname,
+        tokens,
+        totalUSD,
+        totalMXN,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      setData(prev => ({
+        ...prev,
+        cryptoWallets: [...prev.cryptoWallets, newWallet],
+      }));
+    } catch (error) {
+      console.error('Error adding wallet:', error);
+      throw error;
+    } finally {
+      setIsRefreshingCrypto(false);
+    }
+  };
+
+  const removeWallet = (walletId: string) => {
+    setData(prev => ({
+      ...prev,
+      cryptoWallets: prev.cryptoWallets.filter(wallet => wallet.id !== walletId),
+    }));
+  };
+
+  const refreshWallet = async (walletId: string) => {
+    try {
+      setIsRefreshingCrypto(true);
+      
+      const wallet = data.cryptoWallets.find(w => w.id === walletId);
+      if (!wallet) return;
+
+      const tokens = await getWalletTokens(wallet.address);
+      const { totalUSD, totalMXN } = calculateWalletValue(tokens);
+
+      setData(prev => ({
+        ...prev,
+        cryptoWallets: prev.cryptoWallets.map(w =>
+          w.id === walletId
+            ? {
+                ...w,
+                tokens,
+                totalUSD,
+                totalMXN,
+                lastUpdated: new Date().toISOString(),
+              }
+            : w
+        ),
+      }));
+    } catch (error) {
+      console.error('Error refreshing wallet:', error);
+      throw error;
+    } finally {
+      setIsRefreshingCrypto(false);
+    }
+  };
+
+  const refreshAllWallets = async () => {
+    try {
+      setIsRefreshingCrypto(true);
+      
+      const updatedWallets = await Promise.all(
+        data.cryptoWallets.map(async (wallet) => {
+          try {
+            const tokens = await getWalletTokens(wallet.address);
+            const { totalUSD, totalMXN } = calculateWalletValue(tokens);
+            
+            return {
+              ...wallet,
+              tokens,
+              totalUSD,
+              totalMXN,
+              lastUpdated: new Date().toISOString(),
+            };
+          } catch (error) {
+            console.error(`Error refreshing wallet ${wallet.address}:`, error);
+            return wallet; // Mantener datos anteriores si falla
+          }
+        })
+      );
+
+      setData(prev => ({
+        ...prev,
+        cryptoWallets: updatedWallets,
+      }));
+    } catch (error) {
+      console.error('Error refreshing all wallets:', error);
+    } finally {
+      setIsRefreshingCrypto(false);
+    }
+  };
+
   // ==================== SNAPSHOTS ====================
   
   const takeSnapshot = () => {
@@ -317,8 +457,11 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
         getTotalBalance,
         getCashBalance,
         getCardsBalance,
+        getCryptoBalance,
         getCardById,
         getAllCards,
+        getAllWallets,
+        getWalletById,
         getDistribution,
         getSnapshots,
         getDailyPnL,
@@ -329,8 +472,13 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
         removeCard,
         fixCardBalance,
         fixCashBalance,
+        addWallet,
+        removeWallet,
+        refreshWallet,
+        refreshAllWallets,
         takeSnapshot,
         isLoading,
+        isRefreshingCrypto,
       }}
     >
       {children}

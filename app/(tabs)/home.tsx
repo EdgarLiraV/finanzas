@@ -33,24 +33,24 @@ export default function Home() {
   // ========== FINANCIAL CONTEXT ==========
   const { getTotalBalance, getDailyPnL, isLoading } = useFinancial();
   
-  const balanceUSD = getTotalBalance();
-  const pnlUSD = getDailyPnL();
+  const balanceMXN = getTotalBalance(); // Ahora la base es MXN
+  const pnlMXN = getDailyPnL();
   
   // Calcular % del PnL
   const pnlPercent = (() => {
-    const yesterdayBalance = balanceUSD - pnlUSD;
+    const yesterdayBalance = balanceMXN - pnlMXN;
     if (yesterdayBalance === 0) return 0;
-    return ((pnlUSD / yesterdayBalance) * 100).toFixed(2);
+    return ((pnlMXN / yesterdayBalance) * 100).toFixed(2);
   })();
 
-  const pnlSign = pnlUSD >= 0 ? "+" : "";
+  const pnlSign = pnlMXN >= 0 ? "+" : "";
 
   // ========== MONEDA GLOBAL (MXN Y USD) ==========
   const [usdToMxn, setUsdToMxn] = useState<number | null>(null);
   const [loadingRate, setLoadingRate] = useState(true);
-  const monedas = ["USD", "MXN"];
+  const monedas = ["MXN", "USD"]; // MXN primero (default)
   const [open, setOpen] = useState(false);
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("MXN"); // Default: MXN
 
   // Precio Dólar
   useEffect(() => {
@@ -64,11 +64,11 @@ export default function Home() {
           setUsdToMxn(data.rates.MXN);
         } else {
           console.warn("No se pudo obtener MXN, usando fallback");
-          setUsdToMxn(17);
+          setUsdToMxn(20); // Actualizado a tipo de cambio más reciente
         }
       } catch (error) {
         console.error("Error obteniendo tipo de cambio", error);
-        setUsdToMxn(17);
+        setUsdToMxn(20);
       } finally {
         setLoadingRate(false);
       }
@@ -76,11 +76,11 @@ export default function Home() {
     fetchRate();
   }, []);
 
-  // Correcciones de cambio
-  const getAmountByCurrency = (amountUSD: number): number | null => {
-    if (currency === "USD") return amountUSD;
-    if (currency === "MXN" && usdToMxn != null) {
-      return amountUSD * usdToMxn;
+  // Conversión INVERTIDA: Base MXN → USD
+  const getAmountByCurrency = (amountMXN: number): number | null => {
+    if (currency === "MXN") return amountMXN;
+    if (currency === "USD" && usdToMxn != null) {
+      return amountMXN / usdToMxn; // Dividir para convertir MXN → USD
     }
     return null;
   };
@@ -93,7 +93,7 @@ export default function Home() {
   ): string => {
     if (hidden || amount == null) return "*****.**";
 
-    const symbol = currency === "USD" ? "$" : "$";
+    const symbol = currency === "MXN" ? "$" : "$";
 
     return `${symbol}${amount.toLocaleString("en-US", {
       minimumFractionDigits: 2,
@@ -161,16 +161,16 @@ export default function Home() {
                 Tu patrimonio
               </Text>
               <Text className="font-vs-bold text-texto1 text-4xl">
-                {formatBalance(getAmountByCurrency(balanceUSD), showOcultar)}
+                {formatBalance(getAmountByCurrency(balanceMXN), showOcultar)}
               </Text>
               <View className="flex-row gap-2">
                 <Text className="text-texto2 font-vs-regular">Pnl Diario</Text>
                 <Text
                   className={`font-vs-regular ${
-                    pnlUSD >= 0 ? "text-green-400" : "text-red-400"
+                    pnlMXN >= 0 ? "text-green-400" : "text-red-400"
                   }`}
                 >
-                  {formatBalance(getAmountByCurrency(pnlUSD), showOcultar)} (
+                  {formatBalance(getAmountByCurrency(pnlMXN), showOcultar)} (
                   {pnlSign}
                   {pnlPercent}%)
                 </Text>

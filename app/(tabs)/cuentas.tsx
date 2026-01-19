@@ -2,32 +2,41 @@ import CardCrypto from "@/src/components/cards/CardCrypto";
 import CardEfectivo from "@/src/components/cards/CardEfectivo";
 import CardTarjeta from "@/src/components/cards/CardTarjeta";
 import AddCardModal from "@/src/components/modals/AddCardModal";
+import AddWalletModal from "@/src/components/modals/AddWalletModal";
 import FixBalanceEfectivoModal from "@/src/components/modals/FixBalanceEfectivoModal";
 import FixBalanceModal from "@/src/components/modals/FixBalanceModal";
 import RemoveCardModal from "@/src/components/modals/RemoveCardModal";
+import RemoveWalletModal from "@/src/components/modals/RemoveWalletModal";
 import Nav from "@/src/components/Nav";
 import Pastel from "@/src/components/Pastel";
 import { useFinancial } from "@/src/contexts/FinanciialContext";
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-// import { PieChart } from "react-native-gifted-charts"; // luego
 
 export default function Cuentas() {
   const {
     getCashBalance,
     getCardsBalance,
+    getCryptoBalance,
     getAllCards,
+    getAllWallets,
     addCard,
     removeCard,
     fixCardBalance,
     fixCashBalance,
+    addWallet,
+    removeWallet,
+    refreshAllWallets,
     isLoading,
+    isRefreshingCrypto,
   } = useFinancial();
 
   const cards = getAllCards();
+  const wallets = getAllWallets();
   const efectivoTotal = getCashBalance();
   const tarjetasTotal = getCardsBalance();
+  const cryptoTotal = getCryptoBalance();
 
   // Calcular distribución por tarjeta
   const distribution = cards.map((c) => ({
@@ -37,11 +46,29 @@ export default function Cuentas() {
     percent: tarjetasTotal > 0 ? Math.round((c.balance / tarjetasTotal) * 100) : 0,
   }));
 
+  // Consolidar todos los tokens de todas las wallets
+  const allTokens = wallets.flatMap((wallet) => wallet.tokens);
+  
+  // Agrupar tokens por símbolo
+  const consolidatedTokens = allTokens.reduce((acc, token) => {
+    const existing = acc.find(t => t.symbol === token.symbol);
+    if (existing) {
+      existing.amount += token.amount;
+      existing.usdValue += token.usdValue;
+      existing.mxnValue += token.mxnValue;
+    } else {
+      acc.push({ ...token });
+    }
+    return acc;
+  }, [] as typeof allTokens);
+
   // MODALES
   const [addOpen, setAddOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [fixOpen, setFixOpen] = useState(false);
   const [fixEfectivoOpen, setFixEfectivoOpen] = useState(false);
+  const [addWalletOpen, setAddWalletOpen] = useState(false);
+  const [removeWalletOpen, setRemoveWalletOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -50,40 +77,34 @@ export default function Cuentas() {
       </SafeAreaView>
     );
   }
-    return (
-        <SafeAreaView className="flex-1 bg-base2">
-            <ScrollView
-                contentContainerStyle={{ flexGrow: 1 }}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                className="bg-base1"
-            >
-                <View className="flex flex-row items-center justify-center py-6 px-[5%] bg-base2 mb-10">
-                    <Text className="font-vs-bold text-texto1 text-2xl">
-                        Distribucion
-                    </Text>
-                </View>
 
-                <Pastel />
+  return (
+    <SafeAreaView className="flex-1 bg-base2">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        className="bg-base1"
+      >
+        <View className="flex flex-row items-center justify-center py-6 px-[5%] bg-base2 mb-10">
+          <Text className="font-vs-bold text-texto1 text-2xl">
+            Distribución
+          </Text>
+        </View>
 
-                <View className="mt-8 px-[6%] gap-4 mb-10">
-                <CardCrypto
-                  totalUSD={10000}
-                  previewDistribution={[
-                    { symbol: "SOL", percent: 50, usd: 5000 },
-                    { symbol: "ETH", percent: 27, usd: 2700 },
-                    { symbol: "OTRAS", percent: 23, usd: 2300 },
-                  ]}
-                  fullDistribution={[
-                    { symbol: "SOL", percent: 50, usd: 5000 },
-                    { symbol: "ETH", percent: 27, usd: 2700 },
-                    { symbol: "BTC", percent: 12, usd: 1200 },
-                    { symbol: "AVAX", percent: 6, usd: 600 },
-                    { symbol: "SUI", percent: 5, usd: 500 },
-                  ]}
-                />
+        <Pastel />
 
-<CardTarjeta
+        <View className="mt-8 px-[6%] gap-4 mb-10">
+          <CardCrypto
+            totalMXN={cryptoTotal}
+            tokens={consolidatedTokens}
+            onAddWallet={() => setAddWalletOpen(true)}
+            onRemoveWallet={() => setRemoveWalletOpen(true)}
+            onRefresh={refreshAllWallets}
+            isRefreshing={isRefreshingCrypto}
+          />
+
+          <CardTarjeta
             totalUSD={tarjetasTotal}
             fullDistribution={distribution}
             onAddCard={() => setAddOpen(true)}
@@ -96,16 +117,15 @@ export default function Cuentas() {
               onFixBalance={() => setFixEfectivoOpen(true)}
             />
           </View>
-                </View>
-            </ScrollView>
-            <View className="absolute bottom-10 w-screen items-center">
-                <Nav screenActual="cuentas"/>
-            </View>
+        </View>
+      </ScrollView>
 
+      <View className="absolute bottom-10 w-screen items-center">
+        <Nav screenActual="cuentas" />
+      </View>
 
-
-
-            <AddCardModal
+      {/* ========== MODALES ========== */}
+      <AddCardModal
         visible={addOpen}
         onClose={() => setAddOpen(false)}
         onSubmit={(name) => {
@@ -136,6 +156,20 @@ export default function Cuentas() {
         totalUSD={efectivoTotal}
         onClose={() => setFixEfectivoOpen(false)}
         onSubmit={(newAmount) => fixCashBalance(newAmount)}
+      />
+
+      <AddWalletModal
+        visible={addWalletOpen}
+        onClose={() => setAddWalletOpen(false)}
+        onSubmit={addWallet}
+        isLoading={isRefreshingCrypto}
+      />
+
+      <RemoveWalletModal
+        visible={removeWalletOpen}
+        onClose={() => setRemoveWalletOpen(false)}
+        wallets={wallets}
+        onRemove={removeWallet}
       />
     </SafeAreaView>
   );
