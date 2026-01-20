@@ -2,14 +2,14 @@ import { CryptoToken } from "@/src/types/financial.types";
 import { getCryptoIcon } from "@/src/utils/getCryptoIcon";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    LayoutAnimation,
-    Platform,
-    Pressable,
-    Text,
-    UIManager,
-    View,
+  ActivityIndicator,
+  Image,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  Text,
+  UIManager,
+  View,
 } from "react-native";
 
 if (
@@ -28,6 +28,7 @@ type TokenDistribution = {
 type CardCryptoProps = {
   totalMXN: number;
   tokens: CryptoToken[];
+  wallets: Array<{ id: string; address: string; nickname?: string }>;
   onAddWallet: () => void;
   onRemoveWallet: () => void;
   onRefresh: () => void;
@@ -37,6 +38,7 @@ type CardCryptoProps = {
 export default function CardCrypto({
   totalMXN,
   tokens,
+  wallets,
   onAddWallet,
   onRemoveWallet,
   onRefresh,
@@ -47,6 +49,11 @@ export default function CardCrypto({
   const toggleExpand = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded(!expanded);
+  };
+
+  // Formatear dirección para mostrar
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
   // Calcular distribución por token
@@ -149,6 +156,30 @@ export default function CardCrypto({
           </Text>
         </Pressable>
       </View>
+
+      {/* WALLETS AGREGADAS */}
+      {wallets.length > 0 && (
+        <View className="mt-4 pt-4 border-t border-base1">
+          <Text className="text-texto2 text-xs mb-2">
+            Wallets agregadas ({wallets.length})
+          </Text>
+          {wallets.map((wallet) => (
+            <View key={wallet.id} className="mb-1">
+              <Text className="text-texto2 text-xs">
+                {wallet.nickname ? (
+                  <>
+                    <Text className="font-vs-medium">{wallet.nickname}</Text>
+                    {" · "}
+                    {formatAddress(wallet.address)}
+                  </>
+                ) : (
+                  formatAddress(wallet.address)
+                )}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }

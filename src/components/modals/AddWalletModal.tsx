@@ -6,6 +6,7 @@ type AddWalletModalProps = {
   visible: boolean;
   onClose: () => void;
   onSubmit: (address: string, nickname?: string) => Promise<void>;
+  existingWallets: string[]; // Lista de direcciones ya agregadas
   isLoading?: boolean;
 };
 
@@ -13,11 +14,22 @@ export default function AddWalletModal({
   visible,
   onClose,
   onSubmit,
+  existingWallets,
   isLoading = false,
 }: AddWalletModalProps) {
   const [address, setAddress] = useState("");
   const [nickname, setNickname] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Resetear cuando se cierra el modal
+  const handleClose = () => {
+    if (!submitting) {
+      setAddress("");
+      setNickname("");
+      setSubmitting(false);
+      onClose();
+    }
+  };
 
   const handleSubmit = async () => {
     const trimmedAddress = address.trim();
@@ -32,9 +44,23 @@ export default function AddWalletModal({
       return;
     }
 
+    // ✅ VERIFICAR SI YA EXISTE
+    if (existingWallets.includes(trimmedAddress)) {
+      Alert.alert(
+        "Wallet duplicada", 
+        "Esta wallet ya está agregada. Usa el botón 'Actualizar' para refrescar sus datos."
+      );
+      return;
+    }
+
+    // Prevenir doble click
+    if (submitting) return;
+
     try {
       setSubmitting(true);
       await onSubmit(trimmedAddress, nickname.trim() || undefined);
+      
+      // Limpiar y cerrar solo después de éxito
       setAddress("");
       setNickname("");
       onClose();
@@ -94,7 +120,7 @@ export default function AddWalletModal({
           )}
 
           <View className="flex-row justify-end gap-4 mt-2">
-            <Pressable onPress={onClose} disabled={submitting}>
+            <Pressable onPress={handleClose} disabled={submitting}>
               <Text className="text-texto2">Cancelar</Text>
             </Pressable>
             <Pressable onPress={handleSubmit} disabled={submitting}>

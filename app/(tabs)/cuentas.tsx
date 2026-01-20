@@ -98,6 +98,11 @@ export default function Cuentas() {
           <CardCrypto
             totalMXN={cryptoTotal}
             tokens={consolidatedTokens}
+            wallets={wallets.map(w => ({ 
+              id: w.id, 
+              address: w.address, 
+              nickname: w.nickname 
+            }))}
             onAddWallet={() => setAddWalletOpen(true)}
             onRemoveWallet={() => setRemoveWalletOpen(true)}
             onRefresh={refreshAllWallets}
@@ -162,6 +167,7 @@ export default function Cuentas() {
         visible={addWalletOpen}
         onClose={() => setAddWalletOpen(false)}
         onSubmit={addWallet}
+        existingWallets={wallets.map(w => w.address)}
         isLoading={isRefreshingCrypto}
       />
 

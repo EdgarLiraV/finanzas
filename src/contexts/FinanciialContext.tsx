@@ -327,6 +327,14 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsRefreshingCrypto(true);
       
+      // Verificar si la wallet ya existe
+      const existingWallet = data.cryptoWallets.find(w => w.address === address);
+      if (existingWallet) {
+        console.warn('⚠️ Wallet ya existe, actualizando en vez de duplicar...');
+        await refreshWallet(existingWallet.id);
+        return;
+      }
+      
       // Obtener tokens de la wallet
       const tokens = await getWalletTokens(address);
       const { totalUSD, totalMXN } = calculateWalletValue(tokens);
@@ -345,6 +353,8 @@ export function FinancialProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         cryptoWallets: [...prev.cryptoWallets, newWallet],
       }));
+      
+      console.log('✅ Wallet agregada correctamente');
     } catch (error) {
       console.error('Error adding wallet:', error);
       throw error;
